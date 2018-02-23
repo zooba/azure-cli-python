@@ -57,7 +57,7 @@ class Kudu(object):
         return self._get(path).json()
 
     def put(self, path):
-        return self._get(path).json()
+        return self._put(path).json()
 
     def post(self, path, body):
         data, json = None, None

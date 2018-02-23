@@ -16,39 +16,14 @@ def _get_app(cmd, resource_group_name, name, slot=None):
     return WindowsWebapp(cmd, resource_group_name, name, slot)
 
 
-def _collect_zip(source):
-    import io, zipfile, os
-    
-    source = os.path.abspath(source)
-    ignore_dir = []
-    try:
-        with open(os.path.join(source, '.gitignore'), 'r') as f:
-            ignore_dir = [line.rstrip(' \r\n') for line in f if not line.strip().startswith('#')]
-        ignore_dir = set(d.rstrip('/\\') for d in ignore_dir if d.endswith(('/', '\\')))
-    except:
-        pass
-
-    binary_zip = io.BytesIO()
-    with zipfile.ZipFile(binary_zip, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
-        for root, dirs, files in os.walk(source):
-            # Non recursive for now
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            dirs[:] = [d for d in dirs if d not in ignore_dir]
-            
-            for f in files:
-                if f.startswith('.'):
-                    continue
-                full = os.path.join(root, f)
-                rel = os.path.relpath(full, source)
-                zf.write(full, rel)
-    return binary_zip
-
-
-def publish_to_webapp(cmd, resource_group_name, name, slot=None, source='.'):
+def publish_to_webapp(cmd, resource_group_name, name, slot=None, source='.',
+                      version='364x64', wsgi='app.application'):
     app = _get_app(cmd, resource_group_name, name, slot)
+    app.install_python(version)
 
-    data = _collect_zip(source)
+    data = app.collect_zip(source, version, wsgi)
     app.deploy_zip(data)
+    return app.pip_install_requirements(version)
 
 
 def install_to_webapp(cmd, resource_group_name, name, slot=None, version='364x64'):
